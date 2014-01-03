@@ -1,0 +1,27 @@
+{
+	"name": "evaldobarbosa/sanitizer",
+	"description": "Sanitize your data",
+	"type": "library",
+	"keywords": ["data","values","sanitize","security"],
+	"homepage": "https://github.com/evaldobarbosa/sanitizer",
+	"license": "LGPL-3.0",
+	"authors": [
+		{
+			"name": "Evaldo Barbosa",
+			"email": "evaldobarbosa@gmail.com"
+		}
+	],
+	"require": {
+		"php": ">=5.3"
+	},
+	"autoload": {
+		"classmap": [
+                "src/"
+        ]	
+	},
+	"extra": {
+        "branch-alias": {
+            "dev-master": "0.1-dev"
+        }
+    }
+}
