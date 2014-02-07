@@ -8,8 +8,10 @@ See the examples
 
 Composer:
 ---
+<pre>
 {
 	"require": {
 		"evaldobarbosa/sanitizer": "0.5.*@dev"
 	}
 }
+</pre>
