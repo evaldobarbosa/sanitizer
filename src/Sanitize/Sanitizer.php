@@ -1,9 +1,9 @@
 <?php
-namespace Infra\Sanitize;
+namespace Sanitize;
 
 class Sanitizer {
 	static $instance;
-	private $roles = array();
+	protected $filters = array();
 	
 	static function init() {
 		if (!isset(self::$instance)) {
@@ -14,295 +14,47 @@ class Sanitizer {
 		return self::$instance;
 	}
 	
-	static function add( $role, $name ) {
+	static function add( $Filter, $name ) {
 		self::init();
 		
-		switch ($role) {
+		switch ($Filter) {
 			case "string":
 			default:
-				self::$instance->roles[$name] = new StringRole();
-				return self::$instance->roles[$name];
+				self::$instance->filters[$name] = new Filter\StringFilter();
+				return self::$instance->filters[$name];
 				break;
 			case "email":
-				self::$instance->roles[$name] = new EMailRole();
-				return self::$instance->roles[$name];
+				self::$instance->filters[$name] = new Filter\EMailFilter();
+				return self::$instance->filters[$name];
 				break;
 			case "url":
-				self::$instance->roles[$name] = new UrlRole();
-				return self::$instance->roles[$name];
+				self::$instance->filters[$name] = new Filter\UrlFilter();
+				return self::$instance->filters[$name];
 				break;
 			case "quotes":
-				self::$instance->roles[$name] = new MagicQuotesRole();
-				return self::$instance->roles[$name];
+				self::$instance->filters[$name] = new Filter\MagicQuotesFilter();
+				return self::$instance->filters[$name];
 				break;
 			case "int":
-				self::$instance->roles[$name] = new NumberIntRole();
-				return self::$instance->roles[$name];
+				self::$instance->filters[$name] = new Filter\NumberIntFilter();
+				return self::$instance->filters[$name];
 				break;
 			case "float":
-				self::$instance->roles[$name] = new NumberFloatRole();
-				return self::$instance->roles[$name];
+				self::$instance->filters[$name] = new Filter\NumberFloatFilter();
+				return self::$instance->filters[$name];
 				break;
 			case "phone":
-				self::$instance->roles[$name] = new PhoneRole();
-				return self::$instance->roles[$name];
+				self::$instance->filters[$name] = new Filter\PhoneFilter();
+				return self::$instance->filters[$name];
+				break;
+			case "chars":
+				self::$instance->filters[$name] = new Filter\SpecialCharsFilter();
+				return self::$instance->filters[$name];
 				break;
 		}
 	}
 	
-	function getRole($name) {
-		return $this->roles[$name];
-	}
-}
-
-abstract class AbstractSanitizeRole {
-	protected $role;
-	private $flags = array();
-	private $options = array();
-	
-	abstract function setRole();
-	
-	function __construct() {
-		$this->setRole();
-	}
-	
-	function getRole() {
-		return $this->role;
-	}
-	
-	function addFlag($flag) {
-		$this->flags[ $flag ] = $flag;
-	}
-	
-	function addOption($option) {
-		$this->options[ $option ] = $option;
-	}
-	
-	function getFlags() {
-		$sum = 0;
-		foreach ( $this->flags as $flag ) {
-			$sum += $flag;
-		}
-		
-		return $sum;
-	}
-	
-	function sanitize($value) {
-		return filter_var(
-			$value,
-			$this->role,
-			$this->getFlags()
-		);
-	}
-}
-
-class NumberIntRole extends AbstractSanitizeRole {
-	function setRole() {
-		$this->role = FILTER_SANITIZE_NUMBER_INT;
-	}
-}
-
-class NumberFloatRole extends AbstractSanitizeRole {
-	function setRole() {
-		$this->role = FILTER_SANITIZE_NUMBER_FLOAT;
-	}
-	
-	function fraction() {
-		$this->addFlag( FILTER_FLAG_ALLOW_FRACTION );
-	
-		return $this;
-	}
-	
-	function thousand() {
-		$this->addFlag( FILTER_FLAG_ALLOW_THOUSAND );
-	
-		return $this;
-	}
-	
-	function scientific() {
-		$this->addFlag( FILTER_FLAG_ALLOW_SCIENTIFIC );
-	
-		return $this;
-	}
-}
-
-class UrlRole extends AbstractSanitizeRole {
-	private $strict = false;
-	
-	function setRole() {
-		$this->role = FILTER_SANITIZE_URL;
-	}
-	
-	function strict() {
-		$this->strict = true;
-	
-		return $this;
-	}
-	
-	function sanitize($value) {
-		if ( !$this->strict ) {
-			return parent::sanitize($value);
-		} else {
-			$matches = parse_url($value);
-			
-			$regex = '/([a-z0-9]+\.[a-z0-9]+\.[a-z0-9]{2,3}|[a-z0-9]+\.[a-z0-9]+\.[a-z0-9]{2,4}[\.]{1}[a-z0-9]{2})$/';
-			if ( !isset($matches['host']) /*|| !preg_match($regex,$matches['host'])*/ ) {
-				throw new \Exception('You do not have url');
-			}
-			
-			$host = preg_replace('([^0-9a-z_\.\-]+)','',$matches['host']);
-			$value = str_replace( $matches['host'], $host, $value );
-			
-			if ( isset($matches['uri']) ) {
-				$uri = preg_replace('([^$-_\.\+!\*\'\(\),{}\|\\\^~\[\]`"><\#%;/\?:@&=]+)','',$matches['uri']);
-				$value = str_replace( $matches['uri'], $uri, $value );
-			}
-			
-			return $value;
-		}
-	}
-}
-
-class EMailRole extends AbstractSanitizeRole {
-	private $strict = false;
-	
-	function setRole() {
-		$this->role = FILTER_SANITIZE_EMAIL;
-	}
-	
-	function strict() {
-		$this->strict = true;
-		
-		return $this;
-	}
-	
-	function sanitize($value) {
-		if ( !$this->strict ) {
-			return parent::sanitize($value);
-		} else {
-			return preg_replace('([^0-9a-z_@\.]+)','',$value);
-		}
-	}
-}
-
-class MagicQuotesRole extends AbstractSanitizeRole {
-	function setRole() {
-		$this->role = FILTER_SANITIZE_MAGIC_QUOTES;
-	}
-}
-
-class PhoneRole extends AbstractSanitizeRole {
-	function setRole() {
-		$this->role = 0;
-	}
-	
-	function sanitize($value) {
-		$matches = preg_split("([^0-9 \-\.\+])", $value);
-		if ( count($matches) > 0 ) {
-			$value = implode("",$matches);
-		}
-		
-		$regex = '/((([0-9]{0,2}[ \.\-\+]{0,1})[0-9]{0,2}[ \.\-]{0,1})[0-9]{4}[ \.\-]{0,1}[0-9]{4})$/';
-		
-		$matches = array();
-		
-		preg_match_all( $regex, $value, $matches );
-		
-		if ( count($matches[0]) == 0 ) {
-			throw new \Exception('You do not have a phone number');
-		}
-
-		$value = preg_split("([ \-\.\+])", $matches[0][0]);
-		
-		return implode("",$value);
-	}
-}
-
-class StringRole extends AbstractSanitizeRole {
-	function setRole() {
-		$this->role = FILTER_SANITIZE_STRING;
-	}
-	
-	function stripped() {
-		$this->low()->high();
-		
-		return $this;
-	}
-	
-	function low() {
-		$this->addFlag( FILTER_FLAG_STRIP_LOW );
-		
-		return $this;
-	}
-	
-	function high() {
-		$this->addFlag( FILTER_FLAG_STRIP_HIGH );
-		
-		return $this;
-	}
-	
-	function encodeLow() {
-		$this->addFlag( FILTER_FLAG_ENCODE_LOW );
-		
-		return $this;
-	}
-	
-	function encodeHigh() {
-		$this->addFlag( FILTER_FLAG_ENCODE_HIGH );
-	
-		return $this;
-	}
-	
-	function encodeAmp() {
-		$this->addFlag( FILTER_FLAG_ENCODE_AMP );
-		
-		return $this;
-	}
-	
-	function noEncode() {
-		$this->addFlag( FILTER_FLAG_NO_ENCODE_QUOTES );
-		
-		return $this;
-	}
-}
-
-class SpecialCharsRole extends AbstractSanitizeRole {
-	function setRole() {
-		$this->role = FILTER_SANITIZE_SPECIAL_CHARS;
-	}
-
-	function stripped() {
-		$this->low()->high();
-
-		return $this;
-	}
-
-	function low() {
-		$this->addFlag( FILTER_FLAG_STRIP_LOW );
-
-		return $this;
-	}
-
-	function high() {
-		$this->addFlag( FILTER_FLAG_STRIP_HIGH );
-
-		return $this;
-	}
-
-	function encodeHigh() {
-		$this->addFlag( FILTER_FLAG_ENCODE_HIGH );
-
-		return $this;
-	}
-	
-	function full($encode=true) {
-		$this->role = FILTER_SANITIZE_SPECIAL_CHARS;
-		$this->flags = array();
-		
-		if ( !$encode ) {
-			$this->addFlag( FILTER_SANITIZE_FULL_SPECIAL_CHARS );
-		}
-		
-		return $this;
+	function getFilter($name) {
+		return $this->filters[$name];
 	}
 }

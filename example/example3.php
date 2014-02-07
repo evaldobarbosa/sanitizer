@@ -1,7 +1,7 @@
 <?php
-use Infra\Sanitize\Sanitizer;
-$path = realpath( dirname(__FILE__) . "/../src" );
-require "{$path}/Sanitize/Sanitizer.php";
+require "autoloader.php";
+
+use Sanitize\Sanitizer;
 
 //This uses only php filter_sanitize_email
 $email = Sanitizer::add('email', 'normal');

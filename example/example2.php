@@ -1,8 +1,9 @@
 <?php
-$path = realpath( dirname(__FILE__) . "/../src" );
-require "{$path}/Sanitize/Sanitizer.php";
+require "autoloader.php";
 
-$phone = Infra\Sanitize\Sanitizer::add('phone','phone');
+use Sanitize\Sanitizer;
+
+$phone = Sanitize\Sanitizer::add('phone','phone');
 
 echo $phone->sanitize("88485827") . "\n";
 echo $phone->sanitize("9888485827") . "\n";
